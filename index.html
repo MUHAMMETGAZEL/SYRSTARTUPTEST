@@ -452,30 +452,6 @@
         <div class="tooltip"></div>
         <div class="zoom-level" id="zoom-level">التكبير: 100%</div>
         
-        <div class="legend">
-            <h3>مفتاح الخريطة</h3>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #ff7e5f;"></div>
-                <div class="legend-text">التمويل والاستثمار</div>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #4ca1af;"></div>
-                <div class="legend-text">التعليم والبحث</div>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #ffd166;"></div>
-                <div class="legend-text">البنية التحتية</div>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #06d6a0;"></div>
-                <div class="legend-text">الدعم والاستشارات</div>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #9d4edd;"></div>
-                <div class="legend-text">السياسات والتنظيم</div>
-            </div>
-        </div>
-        
         <!-- Flourish Embed Container -->
         <div id="flourish-container">
             <div class="flourish-embed flourish-hierarchy" data-src="visualisation/24076143">
@@ -520,7 +496,7 @@
             const flourishContainer = document.getElementById('flourish-container');
             const flourishEmbed = document.querySelector('.flourish-embed');
             
-            // إخفاء شاشة التحميل بعد تأكيد تحميل الخريطة
+            
             setTimeout(() => {
                 loadingOverlay.style.opacity = '0';
                 setTimeout(() => {
@@ -528,7 +504,7 @@
                 }, 500);
             }, 2000);
             
-            // Fullscreen button functionality
+            
             document.getElementById('fullscreen-btn').addEventListener('click', function() {
                 if (mapContainer.requestFullscreen) {
                     mapContainer.requestFullscreen();
@@ -541,16 +517,16 @@
                 }
             });
             
-            // Reset view button functionality
+           
             document.getElementById('reset-view').addEventListener('click', function() {
-                // إعادة تحميل الخريطة
+                
                 loadingOverlay.style.display = 'flex';
                 loadingOverlay.style.opacity = '1';
                 
-                // إعادة تعيين التكبير
+                
                 flourishEmbed.style.transform = 'scale(1)';
                 
-                // تحديث مستوى التكبير
+                
                 zoomLevel.textContent = 'التكبير: 100%';
                 zoomLevel.style.display = 'block';
                 
@@ -560,25 +536,25 @@
                         loadingOverlay.style.display = 'none';
                     }, 500);
                     
-                    // إخفاء مستوى التكبير بعد 2 ثانية
+                   
                     setTimeout(() => {
                         zoomLevel.style.display = 'none';
                     }, 2000);
                 }, 1000);
             });
             
-            // Zoom in button functionality
+          
             document.getElementById('zoom-in-btn').addEventListener('click', function() {
                 let currentScale = parseFloat(flourishEmbed.style.transform.replace('scale(', '').replace(')', '')) || 1;
                 if (currentScale < 2) {
                     currentScale += 0.1;
                     flourishEmbed.style.transform = `scale(${currentScale})`;
                     
-                    // تحديث مستوى التكبير
+                    
                     zoomLevel.textContent = `التكبير: ${Math.round(currentScale * 100)}%`;
                     zoomLevel.style.display = 'block';
                     
-                    // إخفاء مستوى التكبير بعد 2 ثانية
+                   
                     setTimeout(() => {
                         zoomLevel.style.display = 'none';
                     }, 2000);
@@ -595,18 +571,18 @@
                 }
             });
             
-            // Zoom out button functionality
+            
             document.getElementById('zoom-out-btn').addEventListener('click', function() {
                 let currentScale = parseFloat(flourishEmbed.style.transform.replace('scale(', '').replace(')', '')) || 1;
                 if (currentScale > 0.5) {
                     currentScale -= 0.1;
                     flourishEmbed.style.transform = `scale(${currentScale})`;
                     
-                    // تحديث مستوى التكبير
+                    
                     zoomLevel.textContent = `التكبير: ${Math.round(currentScale * 100)}%`;
                     zoomLevel.style.display = 'block';
                     
-                    // إخفاء مستوى التكبير بعد 2 ثانية
+                    
                     setTimeout(() => {
                         zoomLevel.style.display = 'none';
                     }, 2000);
@@ -631,7 +607,7 @@
                 }
             });
             
-            // إضافة تكبير/تصغير بالماوس
+            
             flourishContainer.addEventListener('wheel', function(e) {
                 e.preventDefault();
                 let currentScale = parseFloat(flourishEmbed.style.transform.replace('scale(', '').replace(')', '')) || 1;
@@ -650,11 +626,10 @@
                     }
                 }
                 
-                // تحديث مستوى التكبير
+               
                 zoomLevel.textContent = `التكبير: ${Math.round(currentScale * 100)}%`;
                 zoomLevel.style.display = 'block';
                 
-                // إخفاء مستوى التكبير بعد 2 ثانية
                 setTimeout(() => {
                     zoomLevel.style.display = 'none';
                 }, 2000);
