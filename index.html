@@ -33,7 +33,7 @@
             position: relative;
             overflow: hidden;
             border: 1px solid rgba(76, 161, 175, 0.3);
-            max-width: 1000px;
+            max-width: 1200px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -78,9 +78,9 @@
             flex: 1;
             position: relative;
             margin: 30px auto;
-            max-width: 1000px;
+            max-width: 1200px;
             width: 100%;
-            height: 80vh;
+            height: 85vh;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 15px;
             overflow: hidden;
@@ -88,10 +88,19 @@
             border: 1px solid rgba(76, 161, 175, 0.3);
         }
         
-        #flourish-map {
+        #flourish-container {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .flourish-embed {
             width: 100%;
             height: 100%;
             border: none;
+            transform-origin: center;
+            transition: transform 0.3s ease;
         }
         
         .legend {
@@ -142,7 +151,7 @@
             color: #a8dadc;
             font-size: 1.1rem;
             border: 1px solid rgba(76, 161, 175, 0.3);
-            max-width: 1000px;
+            max-width: 1200px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -157,7 +166,7 @@
             display: flex;
             justify-content: space-between;
             width: 100%;
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto 20px;
         }
         
@@ -242,7 +251,7 @@
         }
         
         .description {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 20px auto;
             padding: 20px;
             background: rgba(255, 255, 255, 0.05);
@@ -288,6 +297,28 @@
             color: #a8dadc;
         }
         
+        .zoom-level {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 30, 50, 0.8);
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            color: #ffd166;
+            z-index: 10;
+            display: none;
+            animation: fadeInOut 2s ease;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 2rem;
@@ -302,7 +333,7 @@
             }
             
             .map-container {
-                height: 70vh;
+                height: 75vh;
             }
             
             .title-box {
@@ -320,7 +351,7 @@
         
         @media (max-width: 480px) {
             .map-container {
-                height: 60vh;
+                height: 65vh;
             }
             
             .legend {
@@ -343,6 +374,18 @@
             .title-row {
                 flex-direction: column;
                 gap: 10px;
+            }
+            
+            .header {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .header h2 {
+                font-size: 1.3rem;
             }
         }
         
@@ -407,10 +450,37 @@
             <div class="loading-text">جاري تحميل الخريطة التفاعلية...</div>
         </div>
         <div class="tooltip"></div>
+        <div class="zoom-level" id="zoom-level">التكبير: 100%</div>
         
-        <!-- Flourish Embed -->
-        <div class="flourish-embed flourish-hierarchy" data-src="visualisation/24076143">
-            <script src="https://public.flourish.studio/resources/embed.js"></script>
+        <div class="legend">
+            <h3>مفتاح الخريطة</h3>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ff7e5f;"></div>
+                <div class="legend-text">التمويل والاستثمار</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #4ca1af;"></div>
+                <div class="legend-text">التعليم والبحث</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ffd166;"></div>
+                <div class="legend-text">البنية التحتية</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #06d6a0;"></div>
+                <div class="legend-text">الدعم والاستشارات</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #9d4edd;"></div>
+                <div class="legend-text">السياسات والتنظيم</div>
+            </div>
+        </div>
+        
+        <!-- Flourish Embed Container -->
+        <div id="flourish-container">
+            <div class="flourish-embed flourish-hierarchy" data-src="visualisation/24076143">
+                <script src="https://public.flourish.studio/resources/embed.js"></script>
+            </div>
         </div>
     </div>
     
@@ -446,6 +516,9 @@
             const mapContainer = document.querySelector('.map-container');
             const loadingOverlay = document.getElementById('loading-overlay');
             const tooltip = document.querySelector('.tooltip');
+            const zoomLevel = document.getElementById('zoom-level');
+            const flourishContainer = document.getElementById('flourish-container');
+            const flourishEmbed = document.querySelector('.flourish-embed');
             
             // إخفاء شاشة التحميل بعد تأكيد تحميل الخريطة
             setTimeout(() => {
@@ -474,40 +547,80 @@
                 loadingOverlay.style.display = 'flex';
                 loadingOverlay.style.opacity = '1';
                 
+                // إعادة تعيين التكبير
+                flourishEmbed.style.transform = 'scale(1)';
+                
+                // تحديث مستوى التكبير
+                zoomLevel.textContent = 'التكبير: 100%';
+                zoomLevel.style.display = 'block';
+                
                 setTimeout(() => {
                     loadingOverlay.style.opacity = '0';
                     setTimeout(() => {
                         loadingOverlay.style.display = 'none';
                     }, 500);
+                    
+                    // إخفاء مستوى التكبير بعد 2 ثانية
+                    setTimeout(() => {
+                        zoomLevel.style.display = 'none';
+                    }, 2000);
                 }, 1000);
             });
             
             // Zoom in button functionality
             document.getElementById('zoom-in-btn').addEventListener('click', function() {
-                // تأثير بسيط للتمثيل
-                tooltip.innerHTML = '<strong>تم التكبير</strong><br>استمر في النقر للتكبير أكثر';
-                tooltip.style.opacity = 1;
-                tooltip.style.left = '50%';
-                tooltip.style.top = '50%';
-                tooltip.style.transform = 'translate(-50%, -50%)';
-                
-                setTimeout(() => {
-                    tooltip.style.opacity = 0;
-                }, 1500);
+                let currentScale = parseFloat(flourishEmbed.style.transform.replace('scale(', '').replace(')', '')) || 1;
+                if (currentScale < 2) {
+                    currentScale += 0.1;
+                    flourishEmbed.style.transform = `scale(${currentScale})`;
+                    
+                    // تحديث مستوى التكبير
+                    zoomLevel.textContent = `التكبير: ${Math.round(currentScale * 100)}%`;
+                    zoomLevel.style.display = 'block';
+                    
+                    // إخفاء مستوى التكبير بعد 2 ثانية
+                    setTimeout(() => {
+                        zoomLevel.style.display = 'none';
+                    }, 2000);
+                } else {
+                    tooltip.innerHTML = '<strong>الحد الأقصى للتكبير</strong><br>لا يمكن التكبير أكثر من ذلك';
+                    tooltip.style.opacity = 1;
+                    tooltip.style.left = '50%';
+                    tooltip.style.top = '50%';
+                    tooltip.style.transform = 'translate(-50%, -50%)';
+                    
+                    setTimeout(() => {
+                        tooltip.style.opacity = 0;
+                    }, 1500);
+                }
             });
             
             // Zoom out button functionality
             document.getElementById('zoom-out-btn').addEventListener('click', function() {
-                // تأثير بسيط للتمثيل
-                tooltip.innerHTML = '<strong>تم التصغير</strong><br>استمر في النقر للتصغير أكثر';
-                tooltip.style.opacity = 1;
-                tooltip.style.left = '50%';
-                tooltip.style.top = '50%';
-                tooltip.style.transform = 'translate(-50%, -50%)';
-                
-                setTimeout(() => {
-                    tooltip.style.opacity = 0;
-                }, 1500);
+                let currentScale = parseFloat(flourishEmbed.style.transform.replace('scale(', '').replace(')', '')) || 1;
+                if (currentScale > 0.5) {
+                    currentScale -= 0.1;
+                    flourishEmbed.style.transform = `scale(${currentScale})`;
+                    
+                    // تحديث مستوى التكبير
+                    zoomLevel.textContent = `التكبير: ${Math.round(currentScale * 100)}%`;
+                    zoomLevel.style.display = 'block';
+                    
+                    // إخفاء مستوى التكبير بعد 2 ثانية
+                    setTimeout(() => {
+                        zoomLevel.style.display = 'none';
+                    }, 2000);
+                } else {
+                    tooltip.innerHTML = '<strong>الحد الأدنى للتصغير</strong><br>لا يمكن التصغير أكثر من ذلك';
+                    tooltip.style.opacity = 1;
+                    tooltip.style.left = '50%';
+                    tooltip.style.top = '50%';
+                    tooltip.style.transform = 'translate(-50%, -50%)';
+                    
+                    setTimeout(() => {
+                        tooltip.style.opacity = 0;
+                    }, 1500);
+                }
             });
             
             // Initialize tooltip position on mouse move
@@ -518,9 +631,33 @@
                 }
             });
             
-            // Listen for messages from Flourish
-            window.addEventListener('message', function(event) {
-                // يمكنك هنا إضافة تفاعل مع الخريطة إذا كانت ترسل بيانات
+            // إضافة تكبير/تصغير بالماوس
+            flourishContainer.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                let currentScale = parseFloat(flourishEmbed.style.transform.replace('scale(', '').replace(')', '')) || 1;
+                
+                if (e.deltaY < 0) {
+                    // تكبير
+                    if (currentScale < 2) {
+                        currentScale += 0.1;
+                        flourishEmbed.style.transform = `scale(${currentScale})`;
+                    }
+                } else {
+                    // تصغير
+                    if (currentScale > 0.5) {
+                        currentScale -= 0.1;
+                        flourishEmbed.style.transform = `scale(${currentScale})`;
+                    }
+                }
+                
+                // تحديث مستوى التكبير
+                zoomLevel.textContent = `التكبير: ${Math.round(currentScale * 100)}%`;
+                zoomLevel.style.display = 'block';
+                
+                // إخفاء مستوى التكبير بعد 2 ثانية
+                setTimeout(() => {
+                    zoomLevel.style.display = 'none';
+                }, 2000);
             });
         });
     </script>
