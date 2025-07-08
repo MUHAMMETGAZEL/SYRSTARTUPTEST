@@ -643,8 +643,7 @@
 
 
 
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -768,7 +767,7 @@
     }
     
     .center-circle h3 {
-        font-size: 1.5rem;
+        font-size: 1rem;
         margin-bottom: 5px;
         color: #ffd166;
     }
@@ -1370,7 +1369,7 @@ margin-right: auto;
         }
         
         .center-circle h3 {
-            font-size: 15px;
+            font-size: 8px;
         }
         
         .inner-label {
@@ -1470,7 +1469,7 @@ margin-right: auto;
     <div class="footer">
         <div class="database-info">
             <i class="fas fa-database db-icon"></i>
-            <span>جميع التغييرات محفوظة في قاعدة البيانات المحلية</span>
+            <span>جميع التغييرات محفوظة في قاعدة البيانات المحلية - آخر حفظ: <span id="last-save-time">لم يتم الحفظ بعد</span></span>
         </div>
         <p>Source: <span class="highlight">Data Collected by Startup Syria 2025</span></p>
     </div>
@@ -1548,16 +1547,6 @@ margin-right: auto;
             // تهيئة Firebase
             firebase.initializeApp(firebaseConfig);
             const database = firebase.database();
-            
-            // تحديث حالة الاتصال
-            const firebaseStatus = document.getElementById('firebase-status');
-            database.ref('.info/connected').on('value', (snapshot) => {
-                if (snapshot.val() === true) {
-                    firebaseStatus.innerHTML = '<span class="license-active"><i class="fas fa-check-circle"></i> متصل بقاعدة البيانات</span>';
-                } else {
-                    firebaseStatus.innerHTML = '<span class="license-inactive"><i class="fas fa-exclamation-triangle"></i> غير متصل بقاعدة البيانات</span>';
-                }
-            });
             
             const width = 800;
             const height = 800;
@@ -1662,12 +1651,46 @@ margin-right: auto;
             const licenseInput = document.getElementById('license-input');
             const licenseBtn = document.getElementById('license-btn');
             const licenseStatus = document.getElementById('license-status');
+            const lastSaveTimeElement = document.getElementById('last-save-time');
+            
+            // تحديث وقت آخر حفظ
+            function updateLastSaveTime() {
+                const now = new Date();
+                lastSaveTimeElement.textContent = now.toLocaleTimeString('ar-SA');
+            }
+            
+            // تحميل حالة الترخيص من localStorage
+            function loadLicenseStatus() {
+                const savedLicense = localStorage.getItem('innovationMapLicense');
+                if (savedLicense) {
+                    try {
+                        const licenseData = JSON.parse(savedLicense);
+                        licenseActive = licenseData.active || false;
+                    } catch (error) {
+                        console.error('Error loading license status:', error);
+                        licenseActive = false;
+                    }
+                }
+            }
+            
+            // حفظ حالة الترخيص في localStorage
+            function saveLicenseStatus() {
+                try {
+                    const licenseData = {
+                        active: licenseActive,
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('innovationMapLicense', JSON.stringify(licenseData));
+                } catch (error) {
+                    console.error('Error saving license status:', error);
+                }
+            }
             
             function updateLicenseUI() {
                 if (licenseActive) {
                     licenseStatus.innerHTML = '<span class="license-active"><i class="fas fa-check-circle"></i> الترخيص مفعل</span>';
-                    document.getElementById('add-section').style.display = 'block';
-                    document.getElementById('edit-section').style.display = 'block';
+                    document.getElementById('add-section').style.display = 'flex';
+                    document.getElementById('edit-section').style.display = 'flex';
                 } else {
                     licenseStatus.innerHTML = '<span class="license-inactive"><i class="fas fa-times-circle"></i> الترخيص غير مفعل</span>';
                     document.getElementById('add-section').style.display = 'none';
@@ -1680,7 +1703,9 @@ margin-right: auto;
                     setTimeout(() => {
                         const hashedKey = CryptoJS.SHA256(key).toString();
                         const validKeys = [
-                            "42281dc0e8dbaab0cded0057f015964d8738477fdcd4c25480b4a95bdb6c0f4b"
+                            "42281dc0e8dbaab0cded0057f015964d8738477fdcd4c25480b4a95bdb6c0f4b", // "startup-syria-2025"
+                            "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3", // "hello"
+                            "ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d"  // "test123"
                         ];
                         resolve(validKeys.includes(hashedKey));
                     }, 500);
@@ -1703,6 +1728,8 @@ margin-right: auto;
                     
                     if (isValid) {
                         licenseActive = true;
+                        saveLicenseStatus(); // حفظ حالة الترخيص
+                        licenseInput.value = ''; // مسح الحقل بعد التفعيل الناجح
                         showNotification('تم التفعيل بنجاح!', 'تم تفعيل الترخيص بنجاح');
                     } else {
                         licenseActive = false;
@@ -1717,36 +1744,58 @@ margin-right: auto;
                 updateLicenseUI();
             });    
             
-            // وظيفة لتحميل البيانات من Firebase
+            // وظيفة لتحميل البيانات من localStorage أولاً ثم Firebase
             async function loadData() {
                 try {
-                    const snapshot = await database.ref('innovationMapData').once('value');
-                    if (snapshot.exists()) {
-                        sectionDatabase = snapshot.val();
-                        // تأكد من وجود جميع الأقسام
-                        ensureAllSectionsExist();
-                        return true;
+                    // محاولة تحميل البيانات من localStorage أولاً
+                    const localData = localStorage.getItem('innovationMapData');
+                    if (localData) {
+                        try {
+                            const parsedData = JSON.parse(localData);
+                            sectionDatabase = parsedData.data || parsedData; // دعم التنسيق القديم والجديد
+                            ensureAllSectionsExist();
+                            console.log('تم تحميل البيانات من التخزين المحلي');
+                            
+                            // تحديث وقت آخر حفظ إذا كان متوفراً
+                            if (parsedData.timestamp) {
+                                const saveDate = new Date(parsedData.timestamp);
+                                lastSaveTimeElement.textContent = saveDate.toLocaleTimeString('ar-SA');
+                            }
+                        } catch (error) {
+                            console.error('خطأ في تحليل البيانات المحلية:', error);
+                            initializeDatabase();
+                        }
                     } else {
-                        initializeDatabase();
-                        return true;
+                        // إذا لم توجد بيانات محلية، حاول تحميل من Firebase
+                        try {
+                            const snapshot = await database.ref('innovationMapData').once('value');
+                            if (snapshot.exists()) {
+                                sectionDatabase = snapshot.val();
+                                ensureAllSectionsExist();
+                                // حفظ البيانات محلياً كنسخة احتياطية
+                                saveDataLocally();
+                                console.log('تم تحميل البيانات من Firebase');
+                            } else {
+                                initializeDatabase();
+                                console.log('تم إنشاء بيانات جديدة');
+                            }
+                        } catch (firebaseError) {
+                            console.error('خطأ في تحميل البيانات من Firebase:', firebaseError);
+                            initializeDatabase();
+                        }
                     }
+                    
+                    return true;
                 } catch (error) {
-                    console.error("Error loading data:", error);
-                    // استخدم البيانات المحلية كنسخة احتياطية
-                    const savedData = localStorage.getItem('innovationMapData');
-                    if (savedData) {
-                        sectionDatabase = JSON.parse(savedData);
-                        ensureAllSectionsExist();
-                        return true;
-                    } else {
-                        initializeDatabase();
-                        return true;
-                    }
+                    console.error("خطأ عام في تحميل البيانات:", error);
+                    initializeDatabase();
+                    return false;
                 }
             }
             
             // تأكد من وجود جميع الأقسام في قاعدة البيانات
             function ensureAllSectionsExist() {
+                let hasChanges = false;
                 sectors.forEach(sector => {
                     sector.subsections.forEach(subsection => {
                         if (!sectionDatabase[subsection]) {
@@ -1756,44 +1805,88 @@ margin-right: auto;
                                 sectionLinks: Array(sectionCount).fill(''),
                                 sectorColor: sector.color
                             };
+                            hasChanges = true;
                         }
                     });
                 });
+                
+                if (hasChanges) {
+                    saveData(); // حفظ التغييرات إذا تم إضافة أقسام جديدة
+                }
             }
             
-            // وظيفة لحفظ البيانات في Firebase
-            async function saveData() {
+            // حفظ البيانات محلياً مع timestamp
+            function saveDataLocally() {
                 try {
-                    await database.ref('innovationMapData').set(sectionDatabase);
-                    // احفظ نسخة محلية كنسخة احتياطية
-                    localStorage.setItem('innovationMapData', JSON.stringify(sectionDatabase));
+                    const dataToSave = {
+                        data: sectionDatabase,
+                        timestamp: Date.now(),
+                        version: '1.0'
+                    };
+                    localStorage.setItem('innovationMapData', JSON.stringify(dataToSave));
+                    updateLastSaveTime();
+                    console.log('تم حفظ البيانات محلياً');
                     return true;
                 } catch (error) {
-                    console.error("Error saving data:", error);
-                    // استخدم التخزين المحلي كنسخة احتياطية
-                    localStorage.setItem('innovationMapData', JSON.stringify(sectionDatabase));
+                    console.error('خطأ في الحفظ المحلي:', error);
                     return false;
                 }
             }
             
-            // وظيفة للاستماع للتحديثات في الوقت الحقيقي
-            function setupRealtimeUpdates() {
-                database.ref('innovationMapData').on('value', (snapshot) => {
-                    if (snapshot.exists()) {
-                        sectionDatabase = snapshot.val();
-                        // تأكد من وجود جميع الأقسام
-                        ensureAllSectionsExist();
-                        
-                        // إذا كانت هناك خريطة نشطة، قم بتحديثها
-                        if (activeSection) {
-                            const sectorColor = sectionDatabase[activeSection]?.sectorColor || "#4ca1af";
-                            createNewCircleMap(activeSection, sectorColor);
-                        } else {
-                            // إذا كانت الخريطة الرئيسية نشطة، قم بتحديثها
-                            drawMap();
+            // وظيفة لحفظ البيانات في Firebase و localStorage
+            async function saveData() {
+                try {
+                    // حفظ محلي أولاً (أسرع وأكثر موثوقية)
+                    const localSaved = saveDataLocally();
+                    
+                    // محاولة حفظ في Firebase
+                    try {
+                        await database.ref('innovationMapData').set(sectionDatabase);
+                        console.log('تم حفظ البيانات في Firebase');
+                        return true;
+                    } catch (firebaseError) {
+                        console.error("خطأ في حفظ البيانات في Firebase:", firebaseError);
+                        // إذا فشل Firebase، على الأقل البيانات محفوظة محلياً
+                        if (localSaved) {
+                            showNotification('تم الحفظ محلياً', 'تم حفظ البيانات في التخزين المحلي فقط');
+                            return true;
                         }
+                        return false;
                     }
-                });
+                } catch (error) {
+                    console.error("خطأ عام في حفظ البيانات:", error);
+                    return false;
+                }
+            }
+            
+            // وظيفة للاستماع للتحديثات في الوقت الحقيقي (اختيارية)
+            function setupRealtimeUpdates() {
+                try {
+                    database.ref('innovationMapData').on('value', (snapshot) => {
+                        if (snapshot.exists()) {
+                            const firebaseData = snapshot.val();
+                            // تحقق من أن البيانات مختلفة قبل التحديث
+                            if (JSON.stringify(firebaseData) !== JSON.stringify(sectionDatabase)) {
+                                sectionDatabase = firebaseData;
+                                ensureAllSectionsExist();
+                                
+                                // تحديث العرض إذا لزم الأمر
+                                if (activeSection) {
+                                    const sectorColor = sectionDatabase[activeSection]?.sectorColor || "#4ca1af";
+                                    createNewCircleMap(activeSection, sectorColor);
+                                } else {
+                                    drawMap();
+                                }
+                                
+                                // حفظ البيانات المحدثة محلياً
+                                saveDataLocally();
+                                console.log('تم تحديث البيانات من Firebase');
+                            }
+                        }
+                    });
+                } catch (error) {
+                    console.error('خطأ في إعداد التحديثات المباشرة:', error);
+                }
             }
             
             function initializeDatabase() {
@@ -1806,34 +1899,28 @@ margin-right: auto;
                         };
                     });
                 });
-                // حفظ البيانات الأولية في Firebase
+                // حفظ البيانات الأولية
                 saveData();
             }
             
             function drawMap() {
                 svg.selectAll("*").remove();
-                
-                // رسم الحلقات في الدائرة الرئيسية
                 rings.forEach(ring => {
                     sectors.forEach(sector => {
                         const startAngle = sector.startAngle + rotationAngle;
                         const endAngle = sector.endAngle + rotationAngle;
-                        
                         if (ring.id === 2) {
                             const sectorAngleRange = endAngle - startAngle;
                             const subsectionAngle = sectorAngleRange / sector.subsections.length;
-                            
                             for (let i = 0; i < sector.subsections.length; i++) {
                                 const subsectionName = sector.subsections[i];
                                 const subsectionStartAngle = startAngle + i * subsectionAngle;
                                 const subsectionEndAngle = subsectionStartAngle + subsectionAngle;
-                                
                                 const arcGenerator = d3.arc()
                                     .innerRadius(ring.innerRadius)
                                     .outerRadius(ring.outerRadius)
                                     .startAngle(subsectionStartAngle)
                                     .endAngle(subsectionEndAngle);
-                                
                                 const path = svg.append("path")
                                     .attr("d", arcGenerator())
                                     .attr("transform", `translate(${centerX}, ${centerY})`)
@@ -1850,35 +1937,28 @@ margin-right: auto;
                                     .on("mouseout", function() {
                                         d3.select(this).attr("opacity", 0.8);
                                     });
-                                
                                 if (nestingLevel === 0) {
                                     path.on("click", function() {
-                                        nestingLevel++;
-                                        // حفظ لون القطاع الأصلي
+                                        nestingLevel++;  
                                         const sectorColor = sector.color;
                                         createNewCircleMap(subsectionName, sectorColor);
                                     });
                                 }
-                                
                                 const middleAngle = subsectionStartAngle + subsectionAngle / 2;
                                 const textRadius = (ring.innerRadius + ring.outerRadius) / 2;
                                 const correctedAngle = middleAngle + 4.728;
                                 const x = centerX + textRadius * Math.cos(correctedAngle);
                                 const y = centerY + textRadius * Math.sin(correctedAngle);
-                                
                                 let rotation = (middleAngle * 180 / Math.PI) + 89;
                                 if (rotation > 90 && rotation < 270) {
                                     rotation += 180;
                                 }
-                                
                                 const g = svg.append("g")
                                     .attr("transform", `translate(${x}, ${y}) rotate(${rotation})`)
                                     .attr("class", "subsection-label");
-                                
                                 const labelText = subsectionName;
                                 const maxCharsPerLine = 12;
                                 let lines = [];
-                                
                                 if (labelText.length > maxCharsPerLine) {
                                     const words = labelText.split(' ');
                                     let line = "";
@@ -1894,10 +1974,8 @@ margin-right: auto;
                                 } else {
                                     lines = [labelText];
                                 }
-                                
                                 const lineHeight = 12;
                                 const startY = -((lines.length - 1) * lineHeight) / 2;
-                                
                                 lines.forEach((line, index) => {
                                     g.append("text")
                                         .attr("x", 0)
@@ -1916,7 +1994,6 @@ margin-right: auto;
                                 .outerRadius(ring.outerRadius)
                                 .startAngle(startAngle)
                                 .endAngle(endAngle);
-                            
                             const path = svg.append("path")
                                 .attr("d", arcGenerator())
                                 .attr("transform", `translate(${centerX}, ${centerY})`)
@@ -1935,20 +2012,6 @@ margin-right: auto;
                         }
                     });
                 });
-                
-                // رسم الدوائر المتقطعة - تم تعديلها لتناسب الحجم الجديد
-                for (let r = 50; r <= 350; r += 100) {
-                    svg.append("circle")
-                        .attr("cx", centerX)
-                        .attr("cy", centerY)
-                        .attr("r", r)
-                        .attr("fill", "none")
-                        .attr("stroke", "rgba(255, 255, 255, 0.2)")
-                        .attr("stroke-dasharray", "5,5")
-                        .attr("stroke-width", 1);
-                }
-                
-                // التسميات الداخلية
                 const innerLabels = [
                     { 
                         lines: ["Regulations and", "Government Support"], 
@@ -1976,25 +2039,19 @@ margin-right: auto;
                         angle: Math.PI * 3.3 + rotationAngle
                     }
                 ];
-                
                 const innerRadius = 100;
-                
                 innerLabels.forEach((label) => {
                     const x = centerX + innerRadius * Math.cos(label.angle);
                     const y = centerY + innerRadius * Math.sin(label.angle);
-                    
                     let rotation = (label.angle * 180 / Math.PI) + 90;
                     if (rotation > 90 && rotation < 270) {
                         rotation += 180;
                     }
-                    
                     const g = svg.append("g")
                         .attr("transform", `translate(${x}, ${y}) rotate(${rotation})`)
-                        .attr("class", "inner-label");
-                    
-                    const lineHeight = 15;
+                        .attr("class", "inner-label");               
+     const lineHeight = 15;
                     const startY = -((label.lines.length - 1) * lineHeight) / 2;
-                    
                     label.lines.forEach((line, i) => {
                         if (line === "Funding") {
                             g.append("text")
@@ -2020,59 +2077,40 @@ margin-right: auto;
                     });
                 });
             }
-            
             function createNewCircleMap(subsectionName, sectorColor) {
                 const transitionOverlay = document.getElementById('transition-overlay');
                 transitionOverlay.classList.add('active');
-                
                 setTimeout(() => {
                     svg.selectAll("*").remove();
-                    
                     document.querySelector('.center-circle').innerHTML = `
                         <h3>${subsectionName}</h3>
-                    `;
-                    
-                    // إخفاء أزرار التدوير في الصفحات الفرعية
+                    `; 
                     document.getElementById('rotation-controls').style.display = 'none';
-                    
-                    const currentData = sectionDatabase[subsectionName];
-                    
-                    // تأكد من وجود البيانات
+                    const currentData = sectionDatabase[subsectionName];    
                     if (!currentData) {
-                        console.warn("إنشاء بيانات جديدة للقسم:", subsectionName);
-                        // إنشاء بيانات جديدة إذا لم تكن موجودة
+                        console.warn("إنشاء بيانات جديدة للقسم:", subsectionName); 
                         const parentSector = sectors.find(sector => 
                             sector.subsections.includes(subsectionName)
                         );
-                        
                         sectionDatabase[subsectionName] = {
                             sectionNames: Array.from({length: sectionCount}, (_, i) => `القسم ${i+1}`),
                             sectionLinks: Array(sectionCount).fill(''),
                             sectorColor: parentSector ? parentSector.color : "#4ca1af"
-                        };
-                        
-                        // حفظ البيانات الجديدة
+                        }; 
                         saveData();
                     }
-                    
                     const sectionNames = sectionDatabase[subsectionName].sectionNames;
                     const sectionLinks = sectionDatabase[subsectionName].sectionLinks;
-                    
                     const sectorAngle = (2 * Math.PI) / sectionNames.length;
-                    
                     for (let i = 0; i < sectionNames.length; i++) {
                         const startAngle = i * sectorAngle;
                         const endAngle = (i + 1) * sectorAngle;
-                        // استخدام لون القطاع الأصلي لجميع الأقسام الفرعية
                         const color = sectionDatabase[subsectionName].sectorColor;
-                        
-                        // في الدوائر الفرعية: تمتد الأقسام من المركز مباشرة
                         const arcGenerator = d3.arc()
                             .innerRadius(50) // من المركز مباشرة
                             .outerRadius(350) // إلى الحافة الخارجية
                             .startAngle(startAngle)
                             .endAngle(endAngle);
-                        
                         const path = svg.append("path")
                             .attr("d", arcGenerator())
                             .attr("transform", `translate(${centerX}, ${centerY})`)
@@ -2087,30 +2125,24 @@ margin-right: auto;
                             })
                             .on("mouseout", function() {
                                 d3.select(this).attr("opacity", 0.8);
-                            });
-                        
-                        // جعل القسم بأكمله قابلاً للنقر إذا كان يحتوي على رابط
+                            });     
                         if (sectionLinks[i]) {
                             path.on("click", function() {
                                 window.open(sectionLinks[i], '_blank');
                             });
                         }
-
                         const middleAngle = startAngle + sectorAngle / 2;
                         const textRadius = 200;
                         const correctedAngle = middleAngle + 4.728;
                         const x = centerX + textRadius * Math.cos(correctedAngle);
                         const y = centerY + textRadius * Math.sin(correctedAngle);
-                        
                         let rotation = (middleAngle * 180 / Math.PI) + 90;
                         if (rotation > 90 && rotation < 270) {
                             rotation += 180;
                         }
-                        
                         const g = svg.append("g")
                             .attr("transform", `translate(${x}, ${y}) rotate(${rotation})`)
                             .attr("class", "subsection-label");
-                        
                         const text = g.append("text")
                             .attr("x", 0)
                             .attr("y", 0)
@@ -2119,7 +2151,6 @@ margin-right: auto;
                             .attr("font-size", "10px")
                             .attr("font-weight", "bold")
                             .text(sectionNames[i]);
-                        
                         if (sectionLinks[i]) {
                             text.attr("fill", "#ffd166")
                                 .attr("class", "clickable-text")
@@ -2129,9 +2160,7 @@ margin-right: auto;
                         } else {
                             text.attr("fill", "#ffffff");
                         }
-                    }
-                    
-                    // دائرة خارجية متقطعة
+                    } 
                     svg.append("circle")
                         .attr("cx", centerX)
                         .attr("cy", centerY)
@@ -2139,9 +2168,7 @@ margin-right: auto;
                         .attr("fill", "none")
                         .attr("stroke", "rgba(255, 255, 255, 0.2)")
                         .attr("stroke-dasharray", "5,5")
-                        .attr("stroke-width", 1);
-                    
-                    // نص في المركز
+                        .attr("stroke-width", 1);      
                     const innerText = svg.append("text")
                         .attr("x", centerX)
                         .attr("y", centerY)
@@ -2151,55 +2178,57 @@ margin-right: auto;
                         .attr("font-size", "16px")
                         .attr("font-weight", "bold")
                         .text("أقسام جديدة");
-                    
                     activeSection = subsectionName;
-                    
                     setTimeout(() => {
                         transitionOverlay.classList.remove('active');
                     }, 500);
                 }, 800);
             }
-            
             function transitionBackToMain() {
                 const transitionOverlay = document.getElementById('transition-overlay');
                 transitionOverlay.classList.add('active');
-                
                 setTimeout(() => {
                     svg.selectAll("*").remove();
                     nestingLevel = 0;
                     rotationAngle = 0;
                     drawMap();
-                    
-                    // إعادة عرض أزرار التدوير في الصفحة الرئيسية
                     document.getElementById('rotation-controls').style.display = 'flex';
-                    
                     document.querySelector('.center-circle').innerHTML = `
                         <h3>سوريا</h3>
                         <p>المركز الرئيسي</p>
                     `;
-                    
                     activeSection = null;
-                    
                     setTimeout(() => {
                         transitionOverlay.classList.remove('active');
                     }, 500);
                 }, 800);
-            }
+            }     
             
-            // تهيئة التطبيق
+            // تحميل البيانات وحالة الترخيص عند بدء التطبيق
+            loadLicenseStatus();
             await loadData();
             setupRealtimeUpdates();
             updateLicenseUI();
             drawMap();
             
+            // حفظ البيانات عند إغلاق النافذة أو تغيير الصفحة
+            window.addEventListener('beforeunload', function() {
+                saveDataLocally(); // حفظ سريع محلي
+            });
+            
+            // حفظ دوري كل 30 ثانية
+            setInterval(() => {
+                if (Object.keys(sectionDatabase).length > 0) {
+                    saveDataLocally();
+                }
+            }, 30000);
+            
             document.querySelector('.center-circle').addEventListener('click', function() {
                 transitionBackToMain();
             });
-            
             document.getElementById('reset-view').addEventListener('click', function() {
                 transitionBackToMain();
             });
-            
             document.getElementById('rotate-left').addEventListener('click', function() {
                 rotationAngle -= Math.PI/4;
                 drawMap();
@@ -2209,10 +2238,13 @@ margin-right: auto;
                 rotationAngle += Math.PI/4;
                 drawMap();
             });
-            
             document.getElementById('add-section').addEventListener('click', function() {
                 if (!licenseActive) {
                     showNotification('خطأ في الترخيص', 'يجب تفعيل الترخيص أولاً');
+                    return;
+                }
+                if (!activeSection) {
+                    showNotification('خطأ', 'يجب اختيار قسم فرعي أولاً');
                     return;
                 }
                 document.getElementById('add-section-modal').classList.add('active');
@@ -2220,10 +2252,13 @@ margin-right: auto;
                 document.getElementById('section-link').value = '';
                 document.getElementById('new-section-name').focus();
             });
-            
             document.getElementById('edit-section').addEventListener('click', function() {
                 if (!licenseActive) {
                     showNotification('خطأ في الترخيص', 'يجب تفعيل الترخيص أولاً');
+                    return;
+                }
+                if (!activeSection) {
+                    showNotification('خطأ', 'يجب اختيار قسم فرعي أولاً');
                     return;
                 }
                 updateSectionList();
@@ -2234,19 +2269,15 @@ margin-right: auto;
                     item.classList.remove('active');
                 });
             });
-            
             document.getElementById('close-add-modal').addEventListener('click', function() {
                 document.getElementById('add-section-modal').classList.remove('active');
             });
-            
             document.getElementById('cancel-add-btn').addEventListener('click', function() {
                 document.getElementById('add-section-modal').classList.remove('active');
             });
-            
             document.getElementById('confirm-add-btn').addEventListener('click', async function() {
                 const newName = document.getElementById('new-section-name').value.trim();
                 const newLink = document.getElementById('section-link').value.trim();
-                
                 if (newName) {
                     if (!sectionDatabase[activeSection]) {
                         sectionDatabase[activeSection] = {
@@ -2255,101 +2286,81 @@ margin-right: auto;
                             sectorColor: "#4ca1af"
                         };
                     }
-                    
                     sectionDatabase[activeSection].sectionNames.push(newName);
                     sectionDatabase[activeSection].sectionLinks.push(newLink);
-                    
                     if (activeSection) {
                         // الحصول على لون القطاع الأصلي من قاعدة البيانات
                         const sectorColor = sectionDatabase[activeSection].sectorColor;
-                        
-                        // حفظ البيانات في Firebase
+                        // حفظ البيانات
                         const saved = await saveData();
-                        
                         if (saved) {
                             createNewCircleMap(activeSection, sectorColor);
+                            showNotification('تمت الإضافة بنجاح!', `تم إضافة قسم جديد باسم: ${newName}`);
+                        } else {
+                            showNotification('خطأ في الحفظ', 'فشل في حفظ القسم الجديد');
                         }
                     }
-                    
                     document.getElementById('add-section-modal').classList.remove('active');
-                    showNotification('تمت الإضافة بنجاح!', `تم إضافة قسم جديد باسم: ${newName}`);
                 } else {
                     alert('الرجاء إدخال اسم للقسم الجديد');
                 }
             });
-            
             document.getElementById('close-edit-modal').addEventListener('click', function() {
                 document.getElementById('edit-section-modal').classList.remove('active');
             });
-            
             document.getElementById('cancel-edit-btn').addEventListener('click', function() {
                 document.getElementById('edit-section-modal').classList.remove('active');
             });
-            
             document.getElementById('confirm-edit-btn').addEventListener('click', async function() {
                 const selectedItem = document.querySelector('.section-item.active');
                 const newName = document.getElementById('edit-section-content').value.trim();
                 const newLink = document.getElementById('edit-section-link').value.trim();
-                
                 if (!selectedItem) {
                     alert('الرجاء تحديد قسم للتعديل');
                     return;
                 }
-                
                 if (!newName) {
                     alert('الرجاء إدخال اسم جديد للقسم');
                     return;
                 }
-                
                 const sectionId = parseInt(selectedItem.dataset.id);
                 sectionDatabase[activeSection].sectionNames[sectionId] = newName;
                 sectionDatabase[activeSection].sectionLinks[sectionId] = newLink;
-                
                 if (activeSection) {
                     // الحصول على لون القطاع الأصلي من قاعدة البيانات
                     const sectorColor = sectionDatabase[activeSection].sectorColor;
-                    
-                    // حفظ البيانات في Firebase
+                    // حفظ البيانات
                     const saved = await saveData();
-                    
                     if (saved) {
                         createNewCircleMap(activeSection, sectorColor);
+                        showNotification('تم التعديل بنجاح!', `تم تحديث القسم رقم ${sectionId + 1} بنجاح`);
+                    } else {
+                        showNotification('خطأ في الحفظ', 'فشل في حفظ التعديلات');
                     }
                 }
-                
                 document.getElementById('edit-section-modal').classList.remove('active');
-                showNotification('تم التعديل بنجاح!', `تم تحديث القسم رقم ${sectionId + 1} بنجاح`);
             });
-            
             function showNotification(title, message) {
                 const notification = document.getElementById('notification');
                 const titleElement = document.getElementById('notification-title');
                 const messageElement = document.getElementById('notification-message');
-                
                 titleElement.textContent = title;
                 messageElement.textContent = message;
-                
                 notification.style.display = 'block';
-                
                 setTimeout(() => {
                     notification.style.display = 'none';
                 }, 3000);
             }
-            
             function updateSectionList() {
                 const sectionList = document.getElementById('section-list');
                 sectionList.innerHTML = '';
-                
                 if (!activeSection) return;
-                
                 const sectionNames = sectionDatabase[activeSection].sectionNames;
                 const sectionLinks = sectionDatabase[activeSection].sectionLinks;
-                
                 sectionNames.forEach((name, index) => {
                     const sectionItem = document.createElement('div');
                     sectionItem.className = 'section-item';
                     sectionItem.dataset.id = index;
-                    
                     sectionItem.innerHTML = `
                         <div>
                             <span class="section-name">${name}</span>
@@ -2359,17 +2370,14 @@ margin-right: auto;
                         </div>
                         <span class="section-id">${index + 1}</span>
                     `;
-                    
                     sectionItem.addEventListener('click', function() {
                         document.querySelectorAll('.section-item').forEach(item => {
                             item.classList.remove('active');
                         });
-                        
                         this.classList.add('active');
                         document.getElementById('edit-section-content').value = name;
                         document.getElementById('edit-section-link').value = sectionLinks[index] || '';
                     });
-                    
                     sectionList.appendChild(sectionItem);
                 });
             }
@@ -2377,5 +2385,4 @@ margin-right: auto;
     </script>
 </body>
 </html>
-
 
