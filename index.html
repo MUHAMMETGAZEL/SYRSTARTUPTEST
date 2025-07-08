@@ -1266,7 +1266,7 @@
         100% { transform: rotate(360deg); }
     }
     
-    /* تأثيرات للنص القابل للنقر */
+  
     .clickable-text {
         cursor: pointer;
         transition: all 0.3s ease;
@@ -1559,7 +1559,7 @@ margin-right: auto;
                 .attr("viewBox", `0 0 ${width} ${height}`)
                 .attr("preserveAspectRatio", "xMidYMid meet");
             
-            // الحلقات في الدائرة الرئيسية - تم تكبير الحلقة الخارجية
+            
             const rings = [
                 { id: 1, innerRadius: 50, outerRadius: 150, name: "الحلقة الداخلية", color: "rgba(76, 161, 175, 0.3)" },
                 { id: 2, innerRadius: 150, outerRadius: 350, name: "الحلقة الخارجية", color: "rgba(255, 126, 95, 0.3)" }
@@ -1653,13 +1653,13 @@ margin-right: auto;
             const licenseStatus = document.getElementById('license-status');
             const lastSaveTimeElement = document.getElementById('last-save-time');
             
-            // تحديث وقت آخر حفظ
+           
             function updateLastSaveTime() {
                 const now = new Date();
                 lastSaveTimeElement.textContent = now.toLocaleTimeString('ar-SA');
             }
             
-            // تحميل حالة الترخيص من localStorage
+            
             function loadLicenseStatus() {
                 const savedLicense = localStorage.getItem('innovationMapLicense');
                 if (savedLicense) {
@@ -1720,7 +1720,7 @@ margin-right: auto;
                     return;
                 }
                 
-                // إظهار رسالة تحميل
+                
                 licenseStatus.innerHTML = '<span><i class="fas fa-spinner fa-spin"></i> جاري التحقق من الترخيص...</span>';
                 
                 try {
@@ -1744,19 +1744,19 @@ margin-right: auto;
                 updateLicenseUI();
             });    
             
-            // وظيفة لتحميل البيانات من localStorage أولاً ثم Firebase
+            
             async function loadData() {
                 try {
-                    // محاولة تحميل البيانات من localStorage أولاً
+                    
                     const localData = localStorage.getItem('innovationMapData');
                     if (localData) {
                         try {
                             const parsedData = JSON.parse(localData);
-                            sectionDatabase = parsedData.data || parsedData; // دعم التنسيق القديم والجديد
+                            sectionDatabase = parsedData.data || parsedData;
                             ensureAllSectionsExist();
                             console.log('تم تحميل البيانات من التخزين المحلي');
                             
-                            // تحديث وقت آخر حفظ إذا كان متوفراً
+                           
                             if (parsedData.timestamp) {
                                 const saveDate = new Date(parsedData.timestamp);
                                 lastSaveTimeElement.textContent = saveDate.toLocaleTimeString('ar-SA');
@@ -1766,7 +1766,7 @@ margin-right: auto;
                             initializeDatabase();
                         }
                     } else {
-                        // إذا لم توجد بيانات محلية، حاول تحميل من Firebase
+                        
                         try {
                             const snapshot = await database.ref('innovationMapData').once('value');
                             if (snapshot.exists()) {
@@ -1793,13 +1793,13 @@ margin-right: auto;
                 }
             }
             
-            // تأكد من وجود جميع الأقسام في قاعدة البيانات
+            
             function ensureAllSectionsExist() {
                 let hasChanges = false;
                 sectors.forEach(sector => {
                     sector.subsections.forEach(subsection => {
                         if (!sectionDatabase[subsection]) {
-                            // إذا كان القسم مفقودًا، قم بإنشائه
+                            
                             sectionDatabase[subsection] = {
                                 sectionNames: Array.from({length: sectionCount}, (_, i) => `القسم ${i+1}`),
                                 sectionLinks: Array(sectionCount).fill(''),
@@ -1811,11 +1811,11 @@ margin-right: auto;
                 });
                 
                 if (hasChanges) {
-                    saveData(); // حفظ التغييرات إذا تم إضافة أقسام جديدة
+                    saveData(); 
                 }
             }
             
-            // حفظ البيانات محلياً مع timestamp
+            
             function saveDataLocally() {
                 try {
                     const dataToSave = {
@@ -1833,13 +1833,13 @@ margin-right: auto;
                 }
             }
             
-            // وظيفة لحفظ البيانات في Firebase و localStorage
+            
             async function saveData() {
                 try {
-                    // حفظ محلي أولاً (أسرع وأكثر موثوقية)
+                  
                     const localSaved = saveDataLocally();
                     
-                    // محاولة حفظ في Firebase
+                   
                     try {
                         await database.ref('innovationMapData').set(sectionDatabase);
                         console.log('تم حفظ البيانات في Firebase');
@@ -1859,18 +1859,18 @@ margin-right: auto;
                 }
             }
             
-            // وظيفة للاستماع للتحديثات في الوقت الحقيقي (اختيارية)
+            
             function setupRealtimeUpdates() {
                 try {
                     database.ref('innovationMapData').on('value', (snapshot) => {
                         if (snapshot.exists()) {
                             const firebaseData = snapshot.val();
-                            // تحقق من أن البيانات مختلفة قبل التحديث
+                            
                             if (JSON.stringify(firebaseData) !== JSON.stringify(sectionDatabase)) {
                                 sectionDatabase = firebaseData;
                                 ensureAllSectionsExist();
                                 
-                                // تحديث العرض إذا لزم الأمر
+                                
                                 if (activeSection) {
                                     const sectorColor = sectionDatabase[activeSection]?.sectorColor || "#4ca1af";
                                     createNewCircleMap(activeSection, sectorColor);
@@ -1878,7 +1878,7 @@ margin-right: auto;
                                     drawMap();
                                 }
                                 
-                                // حفظ البيانات المحدثة محلياً
+                               
                                 saveDataLocally();
                                 console.log('تم تحديث البيانات من Firebase');
                             }
@@ -1899,7 +1899,7 @@ margin-right: auto;
                         };
                     });
                 });
-                // حفظ البيانات الأولية
+                
                 saveData();
             }
             
@@ -2204,19 +2204,19 @@ margin-right: auto;
                 }, 800);
             }     
             
-            // تحميل البيانات وحالة الترخيص عند بدء التطبيق
+            
             loadLicenseStatus();
             await loadData();
             setupRealtimeUpdates();
             updateLicenseUI();
             drawMap();
             
-            // حفظ البيانات عند إغلاق النافذة أو تغيير الصفحة
+            
             window.addEventListener('beforeunload', function() {
-                saveDataLocally(); // حفظ سريع محلي
+                saveDataLocally(); 
             });
             
-            // حفظ دوري كل 30 ثانية
+            
             setInterval(() => {
                 if (Object.keys(sectionDatabase).length > 0) {
                     saveDataLocally();
@@ -2289,9 +2289,9 @@ margin-right: auto;
                     sectionDatabase[activeSection].sectionNames.push(newName);
                     sectionDatabase[activeSection].sectionLinks.push(newLink);
                     if (activeSection) {
-                        // الحصول على لون القطاع الأصلي من قاعدة البيانات
+                        
                         const sectorColor = sectionDatabase[activeSection].sectorColor;
-                        // حفظ البيانات
+                       
                         const saved = await saveData();
                         if (saved) {
                             createNewCircleMap(activeSection, sectorColor);
@@ -2327,9 +2327,9 @@ margin-right: auto;
                 sectionDatabase[activeSection].sectionNames[sectionId] = newName;
                 sectionDatabase[activeSection].sectionLinks[sectionId] = newLink;
                 if (activeSection) {
-                    // الحصول على لون القطاع الأصلي من قاعدة البيانات
+                    
                     const sectorColor = sectionDatabase[activeSection].sectorColor;
-                    // حفظ البيانات
+                    
                     const saved = await saveData();
                     if (saved) {
                         createNewCircleMap(activeSection, sectorColor);
