@@ -2358,8 +2358,8 @@
                     
                     if (isValid) {
                         licenseActive = true;
-                        saveLicenseStatus(); // حفظ حالة الترخيص
-                        licenseInput.value = ''; // مسح الحقل بعد التفعيل الناجح
+                        saveLicenseStatus(); 
+                        licenseInput.value = ''; 
                         showNotification('تم التفعيل بنجاح!', 'تم تفعيل الترخيص بنجاح');
                     } else {
                         licenseActive = false;
@@ -2382,7 +2382,7 @@
                     if (localData) {
                         try {
                             const parsedData = JSON.parse(localData);
-                            sectionDatabase = parsedData.data || parsedData; // دعم التنسيق القديم والجديد
+                            sectionDatabase = parsedData.data || parsedData; 
                             ensureAllSectionsExist();
                             console.log('تم تحميل البيانات من التخزين المحلي');
                             
@@ -2402,7 +2402,6 @@
                             if (snapshot.exists()) {
                                 sectionDatabase = snapshot.val();
                                 ensureAllSectionsExist();
-                                // حفظ البيانات محلياً كنسخة احتياطية
                                 saveDataLocally();
                                 console.log('تم تحميل البيانات من Firebase');
                             } else {
@@ -2890,8 +2889,8 @@
                     
               
                     document.querySelector('.center-circle').innerHTML = `
-                        <h3>Syria<h3>
-                        <p>Entrepreneurship Ecosystem Mapping</p>
+                        <h3>سوريا</h3>
+                        <p>المركز الرئيسي</p>
                     `;
                     
                     concentricMap.classList.remove('zoom-out');
@@ -2996,9 +2995,9 @@
                     sectionDatabase[activeSection].sectionNames.push(newName);
                     sectionDatabase[activeSection].sectionLinks.push(newLink);
                     if (activeSection) {
-                        // الحصول على لون القطاع الأصلي من قاعدة البيانات
+                        
                         const sectorColor = sectionDatabase[activeSection].sectorColor;
-                        // حفظ البيانات
+                       
                         const saved = await saveData();
                         if (saved) {
                             createNewCircleMap(activeSection, sectorColor);
